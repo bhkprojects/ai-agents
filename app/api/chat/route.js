@@ -1,26 +1,32 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
 export async function POST(req) {
   try {
     const body = await req.json();
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-    const model = genAI.getGenerativeModel({
-     model: "gemini-2.0-flash"
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "openai/gpt-3.5-turbo",
+        messages: [
+          {
+            role: "system",
+            content: `You are a ${body.agent}`
+          },
+          {
+            role: "user",
+            content: body.message
+          }
+        ]
+      })
     });
 
-    const prompt = `
-You are a ${body.agent}.
-
-User request:
-${body.message}
-`;
-
-    const result = await model.generateContent(prompt);
+    const data = await response.json();
 
     return Response.json({
-      reply: result.response.text()
+      reply: data.choices?.[0]?.message?.content || "No response"
     });
 
   } catch (error) {
